@@ -92,11 +92,6 @@ play {
 }
 
 dependencies {
-    constraints {
-        implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.24")
-        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.24")
-    }
-
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.4")
@@ -110,7 +105,7 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
 
-    implementation("com.google.android.gms:play-services-ads:25.0.0")
+    implementation("com.google.android.gms:play-services-ads:24.5.0")
     implementation("com.google.android.ump:user-messaging-platform:2.1.0")
 
     testImplementation("junit:junit:4.13.2")
