@@ -1,0 +1,26 @@
+AdMint Finance Toolkit - Privacy Policy
+
+Effective date: March 14, 2026
+
+AdMint Finance Toolkit is a calculator app for everyday finance use cases.
+
+1) Information we collect
+- We do not collect or store your calculator inputs on our own servers.
+- The app shows ads using Google AdMob, which may process device identifiers and usage data according to Google's policies.
+
+2) Ads and consent
+- We use Google User Messaging Platform (UMP) to request consent where required.
+- You may be able to manage privacy choices from the app's "Ad Privacy Options" action if available in your region.
+
+3) Data sharing
+- We do not sell personal data.
+- Third-party partners (such as Google) may process data to serve and measure ads under their own privacy terms.
+
+4) Security
+- Calculations are performed locally on-device.
+- We continuously improve app stability to reduce crashes and unexpected behavior.
+
+5) Contact
+- For policy questions, use the contact channel listed in the Play Store listing.
+
+By using the app, you agree to this policy.

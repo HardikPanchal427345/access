@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AdMint Finance Toolkit</string>
+    <string name="privacy_policy_title">Privacy Policy</string>
+    <string name="privacy_policy_summary">AdMint Finance Toolkit uses Google AdMob for ads. We only request ad consent using Google User Messaging Platform and respect available privacy options. Financial calculations run locally and are not sent to our servers.</string>
+</resources>
