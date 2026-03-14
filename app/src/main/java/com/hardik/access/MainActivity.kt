@@ -52,8 +52,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -557,7 +557,7 @@ private fun EmiCalculator(onAdEligibleAction: () -> Unit) {
     val emi = if (monthlyRate == 0.0) {
         principal / months
     } else {
-        val growth = (1.0 + monthlyRate).pow(months)
+        val growth = (1.0 + monthlyRate).pow(months.toDouble())
         principal * monthlyRate * growth / (growth - 1)
     }.safeFinite()
     val totalPayment = (emi * months).safeFinite()
