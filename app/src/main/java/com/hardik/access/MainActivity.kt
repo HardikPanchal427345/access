@@ -557,7 +557,7 @@ private fun EmiCalculator(onAdEligibleAction: () -> Unit) {
     val emi = if (monthlyRate == 0.0) {
         principal / months
     } else {
-        val growth = (1 + monthlyRate).pow(months)
+        val growth = (1.0 + monthlyRate).pow(months)
         principal * monthlyRate * growth / (growth - 1)
     }.safeFinite()
     val totalPayment = (emi * months).safeFinite()
