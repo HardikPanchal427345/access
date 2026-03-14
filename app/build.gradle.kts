@@ -105,7 +105,7 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
 
-    implementation("com.google.android.gms:play-services-ads:24.5.0")
+    implementation("com.google.android.gms:play-services-ads:23.4.0")
     implementation("com.google.android.ump:user-messaging-platform:2.1.0")
 
     testImplementation("junit:junit:4.13.2")
