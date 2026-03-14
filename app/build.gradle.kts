@@ -3,6 +3,18 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+fun propertyOrDefault(name: String, defaultValue: String): String =
+    providers.gradleProperty(name).orNull?.takeIf { it.isNotBlank() } ?: defaultValue
+
+val debugAdmobAppId = "ca-app-pub-3940256099942544~3347511713"
+val debugBannerId = "ca-app-pub-3940256099942544/6300978111"
+val debugInterstitialId = "ca-app-pub-3940256099942544/1033173712"
+
+val releaseAdmobAppId = propertyOrDefault("ADMOB_APP_ID", debugAdmobAppId)
+val releaseBannerId = propertyOrDefault("ADMOB_BANNER_UNIT_ID", debugBannerId)
+val releaseInterstitialId = propertyOrDefault("ADMOB_INTERSTITIAL_UNIT_ID", debugInterstitialId)
+val privacyPolicyUrl = propertyOrDefault("PRIVACY_POLICY_URL", "https://example.com/privacy-policy")
+
 android {
     namespace = "com.hardik.access"
     compileSdk = 35
@@ -18,8 +30,6 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-
-        manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
     }
 
     buildTypes {
@@ -29,10 +39,18 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            manifestPlaceholders["admobAppId"] = releaseAdmobAppId
+            resValue("string", "admob_banner_unit_id", releaseBannerId)
+            resValue("string", "admob_interstitial_unit_id", releaseInterstitialId)
+            buildConfigField("String", "PRIVACY_POLICY_URL", "\"$privacyPolicyUrl\"")
         }
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            manifestPlaceholders["admobAppId"] = debugAdmobAppId
+            resValue("string", "admob_banner_unit_id", debugBannerId)
+            resValue("string", "admob_interstitial_unit_id", debugInterstitialId)
+            buildConfigField("String", "PRIVACY_POLICY_URL", "\"$privacyPolicyUrl\"")
         }
     }
 
@@ -47,6 +65,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
@@ -63,6 +82,7 @@ android {
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.4")
     implementation("androidx.activity:activity-compose:1.9.2")
     implementation("androidx.core:core-splashscreen:1.0.1")
 
@@ -73,7 +93,8 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
 
-    implementation("com.google.android.gms:play-services-ads:23.3.0")
+    implementation("com.google.android.gms:play-services-ads:25.0.0")
+    implementation("com.google.android.ump:user-messaging-platform:2.1.0")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

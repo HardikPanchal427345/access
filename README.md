@@ -1,80 +1,76 @@
-# AdMint Finance Toolkit (Play Store Ready Starter)
+# AdMint Finance Toolkit
 
-AdMint Finance Toolkit is a high-retention, ad-monetized utility app with a modern premium UI:
+AdMint Finance Toolkit is a production-focused Android finance utility app with strong ad monetization potential and modern UX.
 
-- Dark mode first design
-- Gradient background and subtle glow
-- Minimal glassmorphism cards
-- Built-in AdMob banner + interstitial flow
-- Practical daily tools:
-  - Tip + bill split calculator
-  - Discount calculator
-  - EMI loan calculator
-  - GST calculator
+## Why this app can monetize well
 
-This niche generally gives better ad CPC/eCPM than generic apps because users are in a finance intent flow.
+Finance utility traffic (EMI/GST/discount/tip users) generally has stronger ad intent and better ad rates than broad entertainment utilities.
 
----
+## Included features
 
-## Tech Stack
+- Tip + split calculator
+- Discount calculator
+- EMI calculator
+- GST calculator
+- Modern dark UI with gradients, subtle glow, and minimal glassmorphism
+- AdMob monetization:
+  - banner ad placement
+  - interstitial frequency control (every 4 calculator actions)
+- Consent-aware ads with Google UMP (privacy flow)
+- In-app privacy policy dialog + external policy URL support
+
+## Tech stack
 
 - Kotlin
 - Jetpack Compose (Material 3)
 - Google Mobile Ads SDK
-- Android minSdk 24 / targetSdk 35
+- Google User Messaging Platform (UMP)
 
----
-
-## Quick Start
+## Build
 
 ```bash
-./gradlew assembleDebug
+./gradlew :app:assembleDebug
 ```
 
-Open in Android Studio and run on a device/emulator.
+## Release build (AAB)
 
----
+```bash
+./scripts/build_release_bundle.sh
+```
 
-## Ad Monetization Setup (Important)
+Output bundle:
 
-The app currently uses official Google **test ad IDs** so it is safe to run and review.
+```text
+app/build/outputs/bundle/release/app-release.aab
+```
 
-Before release:
+## AdMob production IDs
 
-1. Create your AdMob app and ad units.
-2. Replace values in:
-   - `app/build.gradle.kts` -> `manifestPlaceholders["admobAppId"]`
-   - `app/src/main/res/values/strings.xml`
-     - `admob_banner_unit_id`
-     - `admob_interstitial_unit_id`
-3. Keep test IDs in debug builds while testing.
+The project defaults to official Google test IDs for safe testing.
 
----
+For production, set these in `gradle.properties`:
 
-## Play Store Production Checklist (1-hour focused path)
+```properties
+ADMOB_APP_ID=ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy
+ADMOB_BANNER_UNIT_ID=ca-app-pub-xxxxxxxxxxxxxxxx/zzzzzzzzzz
+ADMOB_INTERSTITIAL_UNIT_ID=ca-app-pub-xxxxxxxxxxxxxxxx/aaaaaaaaaa
+PRIVACY_POLICY_URL=https://your-domain.com/privacy-policy
+```
 
-1. **Build release AAB**
-   - Build > Generate Signed Bundle / APK > Android App Bundle
-2. **Create Play Console listing**
-   - App name, short/full description, category = Finance
-3. **Upload screenshots**
-   - Home + each calculator tab + premium dark UI screen
-4. **Data safety + ads disclosure**
-   - Mark that app serves ads
-5. **Content rating + app access form**
-6. **Upload AAB to production or closed testing**
-7. **Submit for review**
+If these are not set, test IDs remain active.
 
----
+## Play Store metadata
 
-## Icon Assets
+Prepared drafts are available at:
 
-Adaptive icon resources are included:
+- `docs/playstore/listing.md`
+- `docs/playstore/release-notes.md`
 
-- `app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`
-- `app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml`
-- legacy vector fallback:
-  - `app/src/main/res/mipmap-anydpi/ic_launcher.xml`
-  - `app/src/main/res/mipmap-anydpi/ic_launcher_round.xml`
+## Privacy policy
 
-If you want a branded icon pack (Play Store 512x512 + feature graphic), generate from this base in Android Studio Image Asset Studio or Figma.
+- In-app text source: `app/src/main/res/raw/privacy_policy.txt`
+- External URL: `BuildConfig.PRIVACY_POLICY_URL` via `PRIVACY_POLICY_URL` property
+
+## Notes
+
+This cloud environment does not include Android SDK installation, so local/emulator builds may require SDK setup (`ANDROID_HOME` or `local.properties`).

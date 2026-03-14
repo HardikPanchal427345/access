@@ -1,6 +1,10 @@
 package com.hardik.access
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -20,12 +24,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Percent
+import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.TipsAndUpdates
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BorderStroke
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -34,14 +41,15 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberSaveable
@@ -59,6 +67,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
@@ -67,6 +78,7 @@ import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
+import com.hardik.access.ads.ConsentManager
 import com.hardik.access.ui.theme.AdMintTheme
 import com.hardik.access.ui.theme.AquaGlow
 import com.hardik.access.ui.theme.ElectricBlue
@@ -80,29 +92,71 @@ import kotlin.math.pow
 
 class MainActivity : ComponentActivity() {
 
+    private val interstitialFrequency = 4
     private var interstitialAd: InterstitialAd? = null
     private var actionCounter: Int = 0
+    private var mobileAdsInitialized = false
+
+    private lateinit var consentManager: ConsentManager
+
+    private var adServingEnabled by mutableStateOf(false)
+    private var privacyOptionsRequired by mutableStateOf(false)
+    private var consentStatusText by mutableStateOf("Requesting ad consent...")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        MobileAds.initialize(this)
-        loadInterstitialAd()
+        consentManager = ConsentManager(this)
 
         setContent {
             AdMintTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     FinanceToolkitApp(
+                        adServingEnabled = adServingEnabled,
+                        privacyOptionsRequired = privacyOptionsRequired,
+                        consentStatusText = consentStatusText,
                         onAdEligibleAction = {
+                            if (!adServingEnabled) return@FinanceToolkitApp
                             actionCounter += 1
-                            if (actionCounter % 4 == 0) {
+                            if (actionCounter % interstitialFrequency == 0) {
                                 maybeShowInterstitial()
                             }
-                        }
+                        },
+                        onOpenPrivacyOptions = {
+                            consentManager.showPrivacyOptionsForm {
+                                privacyOptionsRequired = consentManager.isPrivacyOptionsRequired()
+                            }
+                        },
+                        onOpenPolicyLink = { openPrivacyPolicyUrl() }
                     )
                 }
             }
         }
+
+        requestConsentAndMaybeInitializeAds()
+    }
+
+    private fun requestConsentAndMaybeInitializeAds() {
+        consentManager.requestConsent { canRequestAds, optionsRequired ->
+            privacyOptionsRequired = optionsRequired
+            if (canRequestAds) {
+                consentStatusText = "Ads enabled"
+                initializeAdsIfNeeded()
+            } else {
+                adServingEnabled = false
+                consentStatusText = "Ads waiting for consent"
+            }
+        }
+    }
+
+    private fun initializeAdsIfNeeded() {
+        if (mobileAdsInitialized) {
+            adServingEnabled = true
+            return
+        }
+        mobileAdsInitialized = true
+        MobileAds.initialize(this)
+        adServingEnabled = true
+        loadInterstitialAd()
     }
 
     private fun maybeShowInterstitial() {
@@ -117,11 +171,16 @@ class MainActivity : ComponentActivity() {
                 interstitialAd = null
                 loadInterstitialAd()
             }
+
+            override fun onAdShowedFullScreenContent() {
+                interstitialAd = null
+            }
         }
         currentAd.show(this)
     }
 
     private fun loadInterstitialAd() {
+        if (!adServingEnabled) return
         InterstitialAd.load(
             this,
             getString(R.string.admob_interstitial_unit_id),
@@ -137,6 +196,20 @@ class MainActivity : ComponentActivity() {
             }
         )
     }
+
+    private fun openPrivacyPolicyUrl() {
+        val url = BuildConfig.PRIVACY_POLICY_URL
+        if (!url.startsWith("http")) {
+            Toast.makeText(this, "Privacy policy URL is not configured", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        try {
+            startActivity(intent)
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(this, "No browser found to open privacy policy", Toast.LENGTH_SHORT).show()
+        }
+    }
 }
 
 private enum class Tool(val label: String, val icon: ImageVector) {
@@ -147,8 +220,17 @@ private enum class Tool(val label: String, val icon: ImageVector) {
 }
 
 @Composable
-private fun FinanceToolkitApp(onAdEligibleAction: () -> Unit) {
+private fun FinanceToolkitApp(
+    adServingEnabled: Boolean,
+    privacyOptionsRequired: Boolean,
+    consentStatusText: String,
+    onAdEligibleAction: () -> Unit,
+    onOpenPrivacyOptions: () -> Unit,
+    onOpenPolicyLink: () -> Unit
+) {
     var selectedTool by rememberSaveable { mutableStateOf(Tool.Tip) }
+    var showPolicyDialog by rememberSaveable { mutableStateOf(false) }
+    val policyText = rememberPrivacyPolicyText()
 
     Box(
         modifier = Modifier
@@ -162,34 +244,72 @@ private fun FinanceToolkitApp(onAdEligibleAction: () -> Unit) {
         Scaffold(
             containerColor = Color.Transparent,
             bottomBar = {
-                BannerAd(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 10.dp)
-                )
+                if (adServingEnabled) {
+                    BannerAd(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp)
+                    )
+                } else {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.06f)),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
+                    ) {
+                        Text(
+                            text = "Ads unavailable until consent is complete",
+                            color = TextSecondary,
+                            modifier = Modifier.padding(14.dp)
+                        )
+                    }
+                }
             }
         ) { innerPadding ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                HeaderCard()
+                HeaderCard(
+                    consentStatusText = consentStatusText,
+                    privacyOptionsRequired = privacyOptionsRequired,
+                    onOpenPrivacyOptions = onOpenPrivacyOptions,
+                    onShowPolicy = { showPolicyDialog = true },
+                    onOpenPolicyLink = onOpenPolicyLink
+                )
                 ToolPicker(selected = selectedTool, onSelected = { selectedTool = it })
                 CalculatorBody(selectedTool = selectedTool, onAdEligibleAction = onAdEligibleAction)
             }
         }
     }
+
+    if (showPolicyDialog) {
+        PrivacyPolicyDialog(
+            policyText = policyText,
+            onDismiss = { showPolicyDialog = false },
+            onOpenPolicyLink = onOpenPolicyLink
+        )
+    }
 }
 
 @Composable
-private fun HeaderCard() {
+private fun HeaderCard(
+    consentStatusText: String,
+    privacyOptionsRequired: Boolean,
+    onOpenPrivacyOptions: () -> Unit,
+    onShowPolicy: () -> Unit,
+    onOpenPolicyLink: () -> Unit
+) {
     GlassCard {
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
                 text = "AdMint Finance Toolkit",
@@ -197,16 +317,85 @@ private fun HeaderCard() {
                 color = Color.White
             )
             Text(
-                text = "Useful daily calculators with premium UX and ad-ready monetization.",
+                text = "Useful daily calculators with premium UX and policy-ready ad monetization.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary
             )
+
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 FeaturePill("Dark Mode")
                 FeaturePill("Glass UI")
                 FeaturePill("Fast Results")
             }
+
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "Consent: $consentStatusText", color = TextSecondary)
+                    Icon(imageVector = Icons.Default.PrivacyTip, contentDescription = "Consent", tint = AquaGlow)
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onShowPolicy) {
+                    Text("Read Policy")
+                }
+                OutlinedButton(onClick = onOpenPolicyLink) {
+                    Text("Open URL")
+                }
+                if (privacyOptionsRequired) {
+                    OutlinedButton(onClick = onOpenPrivacyOptions) {
+                        Text("Ad Privacy Options")
+                    }
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun PrivacyPolicyDialog(policyText: String, onDismiss: () -> Unit, onOpenPolicyLink: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = "Privacy Policy") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(280.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Text(text = policyText, style = MaterialTheme.typography.bodySmall)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        },
+        dismissButton = {
+            TextButton(onClick = onOpenPolicyLink) { Text("Open web version") }
+        }
+    )
+}
+
+@Composable
+private fun rememberPrivacyPolicyText(): String {
+    val context = LocalContext.current
+    return remember {
+        runCatching {
+            context.resources
+                .openRawResource(R.raw.privacy_policy)
+                .bufferedReader()
+                .use { it.readText() }
+        }.getOrElse { context.getString(R.string.privacy_policy_summary) }
     }
 }
 
@@ -232,8 +421,9 @@ private fun ToolPicker(selected: Tool, onSelected: (Tool) -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Tool.entries.forEach { tool ->
+            val isSelected = selected == tool
             FilterChip(
-                selected = selected == tool,
+                selected = isSelected,
                 onClick = { onSelected(tool) },
                 label = { Text(tool.label) },
                 leadingIcon = {
@@ -249,10 +439,9 @@ private fun ToolPicker(selected: Tool, onSelected: (Tool) -> Unit) {
                     selectedLabelColor = Color.White,
                     labelColor = TextSecondary
                 ),
-                border = FilterChipDefaults.filterChipBorder(
-                    borderColor = Color.White.copy(alpha = 0.14f),
-                    selectedBorderColor = AquaGlow.copy(alpha = 0.65f),
-                    selectedBorderWidth = 1.3.dp
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = if (isSelected) AquaGlow.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.14f)
                 )
             )
         }
@@ -545,7 +734,7 @@ private fun GlassCard(content: @Composable () -> Unit) {
             containerColor = Color.White.copy(alpha = 0.08f),
             contentColor = Color.White
         ),
-        border = androidx.compose.foundation.BorderStroke(
+        border = BorderStroke(
             width = 1.dp,
             color = Color.White.copy(alpha = 0.16f)
         )
@@ -559,23 +748,39 @@ private fun GlassCard(content: @Composable () -> Unit) {
 @Composable
 private fun BannerAd(modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
     val adView = remember {
         AdView(context).apply {
-            adSize = AdSize.BANNER
+            setAdSize(AdSize.BANNER)
             adUnitId = context.getString(R.string.admob_banner_unit_id)
-            loadAd(AdRequest.Builder().build())
         }
     }
 
-    DisposableEffect(Unit) {
-        onDispose { adView.destroy() }
+    DisposableEffect(lifecycleOwner, adView) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> adView.resume()
+                Lifecycle.Event.ON_PAUSE -> adView.pause()
+                Lifecycle.Event.ON_DESTROY -> adView.destroy()
+                else -> Unit
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+        adView.loadAd(AdRequest.Builder().build())
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            adView.destroy()
+        }
     }
 
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.06f)),
-        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
