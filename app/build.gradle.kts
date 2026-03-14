@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("com.github.triplet.play")
 }
 
 fun propertyOrDefault(name: String, defaultValue: String): String =
@@ -14,6 +15,8 @@ val releaseAdmobAppId = propertyOrDefault("ADMOB_APP_ID", debugAdmobAppId)
 val releaseBannerId = propertyOrDefault("ADMOB_BANNER_UNIT_ID", debugBannerId)
 val releaseInterstitialId = propertyOrDefault("ADMOB_INTERSTITIAL_UNIT_ID", debugInterstitialId)
 val privacyPolicyUrl = propertyOrDefault("PRIVACY_POLICY_URL", "https://example.com/privacy-policy")
+val playServiceAccountJson = providers.gradleProperty("PLAY_SERVICE_ACCOUNT_JSON").orNull
+val playTrack = propertyOrDefault("PLAY_TRACK", "production")
 
 android {
     namespace = "com.hardik.access"
@@ -76,6 +79,15 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+}
+
+play {
+    defaultToAppBundles.set(true)
+    track.set(playTrack)
+    releaseStatus.set(com.github.triplet.gradle.androidpublisher.ReleaseStatus.DRAFT)
+    if (!playServiceAccountJson.isNullOrBlank()) {
+        serviceAccountCredentials.set(file(playServiceAccountJson))
     }
 }
 

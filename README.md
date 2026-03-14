@@ -48,7 +48,16 @@ app/build/outputs/bundle/release/app-release.aab
 
 The project defaults to official Google test IDs for safe testing.
 
-For production, set these in `gradle.properties`:
+Configured in this repository:
+
+```properties
+ADMOB_APP_ID=ca-app-pub-7150520334581714~5936832581
+ADMOB_BANNER_UNIT_ID=ca-app-pub-7150520334581714/9405304304
+ADMOB_INTERSTITIAL_UNIT_ID=ca-app-pub-7150520334581714/6628296831
+PRIVACY_POLICY_URL=https://github.com/HardikPanchal427345/access/blob/cursor/app-concept-and-readiness-b4b7/docs/privacy-policy.html
+```
+
+If you need to rotate values later, update `gradle.properties`:
 
 ```properties
 ADMOB_APP_ID=ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy
@@ -57,7 +66,7 @@ ADMOB_INTERSTITIAL_UNIT_ID=ca-app-pub-xxxxxxxxxxxxxxxx/aaaaaaaaaa
 PRIVACY_POLICY_URL=https://your-domain.com/privacy-policy
 ```
 
-If these are not set, test IDs remain active.
+If values are removed, release falls back to Google test IDs.
 
 ## Play Store metadata
 
@@ -65,11 +74,20 @@ Prepared drafts are available at:
 
 - `docs/playstore/listing.md`
 - `docs/playstore/release-notes.md`
+- `docs/playstore/publish.md`
+
+Automated publish script:
+
+```bash
+PLAY_SERVICE_ACCOUNT_JSON=/absolute/path/to/service-account.json \
+PLAY_TRACK=production \
+./scripts/publish_playstore.sh
+```
 
 ## Privacy policy
 
 - In-app text source: `app/src/main/res/raw/privacy_policy.txt`
-- External URL: `BuildConfig.PRIVACY_POLICY_URL` via `PRIVACY_POLICY_URL` property
+- External web URL: `docs/privacy-policy.html` (wired through `PRIVACY_POLICY_URL`)
 
 ## Notes
 
